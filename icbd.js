@@ -227,7 +227,9 @@ var server = net.createServer(function (socket) {
         for (var group in session["groups"]) {
           send_client_msg(socket, ["ico", "Group: " + group + "  (mvl) Mod: jperkin       Topic: " + session["groups"][group]["topic"]]);
           session["sockets"].forEach(function (sock) {
-            send_client_msg(socket, ["iwl", " ", sock.nickname, parseInt(parseInt(new Date().getTime() / 1000) - sock.idlesince), "0", sock.logintime, sock.username, sock.hostname, "(nr)"]);
+            if (sock.group == group) {
+              send_client_msg(socket, ["iwl", " ", sock.nickname, parseInt(parseInt(new Date().getTime() / 1000) - sock.idlesince), "0", sock.logintime, sock.username, sock.hostname, "(nr)"]);
+            }
           });
           // XXX: fix totals
           send_client_msg(socket, ["ico", "Total: x users in y groups"]);
