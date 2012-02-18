@@ -17,7 +17,6 @@
  *
  * TODO next:
  *
- *  - /nick
  *  - /join
  *  - Persistent user accounts
  *  - Support group moderators
@@ -155,11 +154,30 @@ var server = net.createServer(function (socket) {
        * I restrict to in-group bricking..
        */
       case 'brick':
+        if (!args[1]) {
+          break;
+        }
         var target = args[1];
         if (nick_in_group(target, socket.group) && target != socket.nickname) {
           send_group_msg_all(socket.group, ["dFYI", target + " has been bricked."]);
         } else {
           send_group_msg_all(socket.group, ["dFYI", "A brick flies off into the ether."]);
+        }
+        break;
+      /*
+       * /nick aka name
+       */
+      case 'name':
+        if (!args[1]) {
+          break;
+        }
+        var nick = args[1];
+        if (nick_is_available(nick)) {
+          var oldnick = socket.nickname;
+          socket.nickname = nick;
+          send_group_msg_all(socket.group, ["dName", oldnick + " changed nickname to " + nick]);
+        } else {
+          sendicbmsg(socket, "eNickname already in use.");
         }
         break;
       /*
@@ -169,8 +187,9 @@ var server = net.createServer(function (socket) {
         if (!args[1]) {
           break;
         }
-        session["groups"][socket.group]["topic"] = args[1]
-        send_group_msg_all(socket.group, ["dTopic", socket.nickname + " changed the topic to \"" + args[1] + "\""]);
+        var topic = args[1]
+        session["groups"][socket.group]["topic"] = topic;
+        send_group_msg_all(socket.group, ["dTopic", socket.nickname + " changed the topic to \"" + topic + "\""]);
         break;
       /*
        * Group flags and moderator are currently faked-up..
@@ -239,7 +258,7 @@ var server = net.createServer(function (socket) {
     logdebug("=>=" + msg.replace(/\001/g, "^A") + "=>=")
     // Prepend length of string as single byte
     msg = String.fromCharCode(msg.length) + msg;
-    sock.write(msg); //, 'ascii');
+    sock.write(msg);
   }
 
   /*
