@@ -77,7 +77,7 @@ var server = net.createServer(function (socket) {
    */
   socket.on("connect", function (data) {
     session["sockets"].push(socket);
-    sendicbmsg(socket, ["j1", os.hostname(), "icbd.js 0.1beta"]);
+    send_client_msg(socket, ["j1", os.hostname(), "icbd.js 0.1beta"]);
   });
 
   /*
@@ -105,15 +105,15 @@ var server = net.createServer(function (socket) {
       /* Ensure nickname is available */
       if (!nick_is_available(nickname)) {
           /* i2cbd doesn't close the connection, but we do */
-          sendicbmsg(socket, "eNickname already in use.");
-          sendicbmsg(socket, "g");
+          send_client_msg(socket, "eNickname already in use.");
+          send_client_msg(socket, "g");
           socket.end();
           return;
       }
 
       /* Send welcome */
-      sendicbmsg(socket, "a");
-      sendicbmsg(socket, ["ico", "Welcome to icbd.js " + nickname + "!"]);
+      send_client_msg(socket, "a");
+      send_client_msg(socket, ["ico", "Welcome to icbd.js " + nickname + "!"]);
 
       socket.nickname = nickname;
       socket.idlesince = parseInt(new Date().getTime() / 1000);
@@ -128,7 +128,7 @@ var server = net.createServer(function (socket) {
         socket.group = defgroup;
 
         // XXX: restricted groups?
-        sendicbmsg(socket, ["dStatus", "You are now in group " + defgroup]);
+        send_client_msg(socket, ["dStatus", "You are now in group " + defgroup]);
         send_group_msg(defgroup, ["dSign-on", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") entered group"]);
       }
     }
@@ -177,7 +177,7 @@ var server = net.createServer(function (socket) {
           socket.nickname = nick;
           send_group_msg_all(socket.group, ["dName", oldnick + " changed nickname to " + nick]);
         } else {
-          sendicbmsg(socket, "eNickname already in use.");
+          send_client_msg(socket, "eNickname already in use.");
         }
         break;
       /*
@@ -195,13 +195,14 @@ var server = net.createServer(function (socket) {
        * Group flags and moderator are currently faked-up..
        */
       case 'w':
-        sendicbmsg(socket, ["ico", ""]);
+        send_client_msg(socket, ["ico", ""]);
         for (var group in session["groups"]) {
-          sendicbmsg(socket, ["ico", "Group: " + group + "  (mvl) Mod: jperkin       Topic: " + session["groups"][group]["topic"]]);
+          send_client_msg(socket, ["ico", "Group: " + group + "  (mvl) Mod: jperkin       Topic: " + session["groups"][group]["topic"]]);
           session["sockets"].forEach(function (sock) {
-            sendicbmsg(socket, ["iwl", " ", sock.nickname, parseInt(parseInt(new Date().getTime() / 1000) - sock.idlesince), "0", sock.logintime, sock.username, sock.hostname, "(nr)"]);
+            send_client_msg(socket, ["iwl", " ", sock.nickname, parseInt(parseInt(new Date().getTime() / 1000) - sock.idlesince), "0", sock.logintime, sock.username, sock.hostname, "(nr)"]);
           });
-          sendicbmsg(socket, ["ico", "Total: x users in y groups"]);
+          // XXX: fix totals
+          send_client_msg(socket, ["ico", "Total: x users in y groups"]);
         }
         break;
       default:
@@ -244,12 +245,9 @@ var server = net.createServer(function (socket) {
   }
 
   /*
-   * Send an ICB message
-   *
-   *  - if sock is an array, send to each of the sockets
-   *  - message is an array to be \001 delimited
+   * Send a message to a client
    */
-  function sendicbmsg(sock, message) {
+  function send_client_msg(sock, message) {
     if (typeof message === 'object') {
       var msg = message.join("\001")
     } else {
@@ -268,7 +266,7 @@ var server = net.createServer(function (socket) {
     session["sockets"].forEach(function (sock) {
       if (sock.group === group &&
           sock !== socket) {
-        sendicbmsg(sock, message);
+        send_client_msg(sock, message);
       }
     });
   }
@@ -278,7 +276,7 @@ var server = net.createServer(function (socket) {
   function send_group_msg_all(group, message) {
     session["sockets"].forEach(function (sock) {
       if (sock.group === group) {
-        sendicbmsg(sock, message);
+        send_client_msg(sock, message);
       }
     });
   }
