@@ -14,10 +14,10 @@
  *  - Basic groups, people can join and chat with each other
  *  - Group topics (but no moderator yet, so anyone can change)
  *  - Bricks! :)
+ *  - /nick, /join, somewhat functional /who
  *
  * TODO next:
  *
- *  - /join
  *  - Persistent user accounts
  *  - Support group moderators
  *  - Lots..
@@ -163,6 +163,34 @@ var server = net.createServer(function (socket) {
         } else {
           send_group_msg_all(socket.group, ["dFYI", "A brick flies off into the ether."]);
         }
+        break;
+      /*
+       * Change group (/join)
+       */
+      case 'g':
+        if (!args[1]) {
+          break;
+        }
+        var group = args[1];
+        /*
+         * i2cb seems to have a 7 character limit on group names, but will
+         * happily truncate longer requests.  Let's not do that.
+         *
+         * Unfortunately, irssi-icb will join the requested channel regardless,
+         * something I should probably fix at some point :)
+         */
+        if (group.length > 7) {
+          send_client_msg(socket, "eGroup name too long (max 7).");
+          break
+        }
+        if (!session["groups"].hasOwnProperty(group)) {
+          session["groups"][group] = {"topic": "(None)"};
+        }
+        var oldgroup = socket.group
+        send_group_msg(oldgroup, ["dDepart", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") just left"]);
+        socket.group = group;
+        send_client_msg(socket, ["dStatus", "You are now in group " + group]);
+        send_group_msg(group, ["dSign-on", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") entered group"]);
         break;
       /*
        * /nick aka name
