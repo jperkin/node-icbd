@@ -136,7 +136,11 @@ var server = net.createServer(function (socket) {
     // bMessageText
     if (cmd == "b") {
       socket.idlesince = parseInt(new Date().getTime() / 1000);
-      send_group_msg(socket.group, ["b" + socket.nickname, args[0]]);
+      if (num_users_in_group(socket.group) > 1) {
+        send_group_msg(socket.group, ["b" + socket.nickname, args[0]]);
+      } else {
+        send_client_msg(socket, ["eNo one else in group!"]);
+      }
     }
 
     /*
@@ -309,6 +313,18 @@ var server = net.createServer(function (socket) {
         send_client_msg(sock, message);
       }
     });
+  }
+  /*
+   * Count number of users in a group
+   */
+  function num_users_in_group(group) {
+    var count = 0;
+    session["sockets"].forEach(function (sock) {
+      if (sock.group === group) {
+        count += 1;
+      }
+    }, count);
+    return count;
   }
 });
 
