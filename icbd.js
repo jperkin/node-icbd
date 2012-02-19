@@ -8,6 +8,8 @@
  *    but if they disconnect then mod passes to eldest in the group by login
  *    time.
  *  - /brick ;-)
+ *  - Nicknames can have special characters (e.g. '@', and '!'), groups do not
+ *    have to start with '#' (and usually don't).
  *
  * Currently supported:
  *
@@ -191,8 +193,12 @@ var server = net.createServer(function (socket) {
           session["groups"][group] = {"topic": "(None)"};
         }
         var oldgroup = socket.group
-        send_group_msg(oldgroup, ["dDepart", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") just left"]);
         socket.group = group;
+        if (num_users_in_group(oldgroup) > 0) {
+          send_group_msg(oldgroup, ["dDepart", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") just left"]);
+        } else {
+          delete session["groups"][oldgroup];
+        }
         send_client_msg(socket, ["dStatus", "You are now in group " + group]);
         send_group_msg(group, ["dSign-on", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") entered group"]);
         break;
