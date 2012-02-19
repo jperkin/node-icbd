@@ -17,6 +17,7 @@
  *  - Group topics (but no moderator yet, so anyone can change)
  *  - Bricks! :)
  *  - /nick, /join, somewhat functional /who
+ *  - Private messages
  *
  * TODO next:
  *
@@ -105,7 +106,7 @@ var server = net.createServer(function (socket) {
       }
 
       /* Ensure nickname is available */
-      if (!nick_is_available(nickname)) {
+      if (get_nick_socket(nickname)) {
           /* i2cbd doesn't close the connection, but we do */
           send_client_msg(socket, "eNickname already in use.");
           send_client_msg(socket, "g");
@@ -203,6 +204,23 @@ var server = net.createServer(function (socket) {
         send_group_msg(group, ["dSign-on", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") entered group"]);
         break;
       /*
+       * Private message
+       */
+      case 'm':
+        if (!args[1]) {
+          break;
+        }
+        var parts = args[1].split(" ");
+        var nick = parts.slice(0,1);
+        var msg = parts.slice(1);
+        var sock = get_nick_socket(nick);
+        if (sock) {
+          send_client_msg(sock, ["c" + socket.nickname, msg]);
+        } else {
+          send_client_msg(socket, ["e" + nick + " not signed on."])
+        }
+        break;
+      /*
        * /nick aka name
        */
       case 'name':
@@ -210,7 +228,7 @@ var server = net.createServer(function (socket) {
           break;
         }
         var nick = args[1];
-        if (nick_is_available(nick)) {
+        if (!get_nick_socket(nick)) {
           var oldnick = socket.nickname;
           socket.nickname = nick;
           send_group_msg_all(socket.group, ["dName", oldnick + " changed nickname to " + nick]);
@@ -262,16 +280,17 @@ var server = net.createServer(function (socket) {
   });
 
   /*
-   * Check requested nickname is permitted
+   * Get a nickname's socket.  Returns undefined if unavailable, so is used
+   * to check availability.
    */
-  function nick_is_available(nickname) {
-    var available = 1;
+  function get_nick_socket(nickname) {
+    var nicksock;
     session["sockets"].forEach(function (sock) {
       if (sock.nickname && nickname == sock.nickname) {
-        available = 0;
+        nicksock = sock;
       }
-    }, available);
-    return available;
+    }, nicksock);
+    return nicksock;
   }
 
   /*
