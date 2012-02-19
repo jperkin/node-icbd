@@ -227,17 +227,21 @@ var server = net.createServer(function (socket) {
        * Group flags and moderator are currently faked-up..
        */
       case 'w':
+        var numgroups = 0;
         send_client_msg(socket, ["ico", ""]);
         for (var group in session["groups"]) {
+          numgroups += 1;
           send_client_msg(socket, ["ico", "Group: " + group + "  (mvl) Mod: jperkin       Topic: " + session["groups"][group]["topic"]]);
           session["sockets"].forEach(function (sock) {
             if (sock.group == group) {
               send_client_msg(socket, ["iwl", " ", sock.nickname, parseInt(parseInt(new Date().getTime() / 1000) - sock.idlesince), "0", sock.logintime, sock.username, sock.hostname, "(nr)"]);
             }
           });
-          // XXX: fix totals
-          send_client_msg(socket, ["ico", "Total: x users in y groups"]);
         }
+        var numusers = total_users();
+        var pluraluser = (numusers == 1) ? "" : "s";
+        var pluralgroup = (numgroups == 1) ? "" : "s";
+        send_client_msg(socket, ["ico", "Total: " + numusers + " user" + pluraluser + " in " + numgroups + " group" + pluralgroup]);
         break;
       default:
         console.log("Unsupported client command " + args[0]);
@@ -313,6 +317,19 @@ var server = net.createServer(function (socket) {
         send_client_msg(sock, message);
       }
     });
+  }
+  /*
+   * Total number of users.  We check for a nickname to ensure it's a
+   * completed connection.
+   */
+  function total_users() {
+    var count = 0;
+    session["sockets"].forEach(function (sock) {
+      if (sock.nickname) {
+        count += 1;
+      }
+    }, count);
+    return count;
   }
   /*
    * Count number of users in a group
