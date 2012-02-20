@@ -274,7 +274,16 @@ var server = net.createServer(function (socket) {
     }
   });
 
+  /*
+   * ICB doesn't have any quit commands, so we trigger user cleanup on
+   * the socket closing.
+   */
   socket.on("end", function (data) {
+    if (num_users_in_group(socket.group) > 1) {
+      send_group_msg(socket.group, ["dSign-off", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") has signed off."]);
+    } else {
+      delete session["groups"][socket.group];
+    }
     // taken from https://gist.github.com/707146
     session["sockets"].splice(session["sockets"].indexOf(socket), 1);
   });
