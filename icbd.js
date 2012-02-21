@@ -14,13 +14,14 @@
  * Currently supported:
  *
  *  - Basic groups, people can join and chat with each other
- *  - Group topics (but no moderator yet, so anyone can change)
+ *  - Group topics and moderators, though moderators have no power
  *  - Bricks! :)
- *  - /nick, /join, somewhat functional /who
+ *  - /nick, /join, mostly functional /who
  *  - Private messages
  *
  * TODO next:
  *
+ *  - Moderator commands
  *  - Persistent user accounts
  *  - Support group moderators
  *  - Lots..
@@ -30,6 +31,25 @@
  *  - Support "w" logins (just dump /who and quit)
  *  - Lots more..
  */
+
+ /*
+  * Notes on moderation:
+  *
+  *  - When a group is created, the moderator is the group creator.
+  *
+  *  - If that person joins a different group, they remain moderator
+  *    of the original group (and can hold moderation of the group they
+  *    joined), and can re-join the original group as moderator.
+  *
+  *  - If the original moderator quits, moderation passes to the user
+  *    who has been online the longest (not necessarily the person who
+  *    has been in the group the longest).
+  *
+  *  - A moderator can choose to /pass moderation, either to a named
+  *    user (who doesn't necessarily need to be in the group at the time,
+  *    just online), or to nobody, in which case the group is left with
+  *    no moderator.
+  */
 
 /* Extra console logging */
 var debug = 1;
@@ -51,6 +71,7 @@ var session = {
   "groups": {
     // group: {
     //   topic: "A topic",
+    //   mod: socket_of_mod,
     // },
   },
 };
@@ -126,12 +147,13 @@ var server = net.createServer(function (socket) {
 
       if (defgroup) {
         if (!session["groups"].hasOwnProperty(defgroup)) {
-          session["groups"][defgroup] = {"topic": "(None)"};
+          session["groups"][defgroup] = {"topic": "(None)", "mod": socket};
         }
         socket.group = defgroup;
 
         // XXX: restricted groups?
-        send_client_msg(socket, ["dStatus", "You are now in group " + defgroup]);
+        var asmod = (socket == session["groups"][defgroup]["mod"]) ? " as moderator" : "";
+        send_client_msg(socket, ["dStatus", "You are now in group " + defgroup + asmod]);
         send_group_msg(defgroup, ["dSign-on", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") entered group"]);
       }
     }
@@ -191,7 +213,7 @@ var server = net.createServer(function (socket) {
           break
         }
         if (!session["groups"].hasOwnProperty(group)) {
-          session["groups"][group] = {"topic": "(None)"};
+          session["groups"][group] = {"topic": "(None)", "mod": socket};
         }
         var oldgroup = socket.group
         socket.group = group;
@@ -200,8 +222,13 @@ var server = net.createServer(function (socket) {
         } else {
           delete session["groups"][oldgroup];
         }
-        send_client_msg(socket, ["dStatus", "You are now in group " + group]);
+        var asmod = (socket == session["groups"][group]["mod"]) ? " as moderator" : "";
+        send_client_msg(socket, ["dStatus", "You are now in group " + group + asmod]);
         send_group_msg(group, ["dSign-on", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") entered group"]);
+        if (session["groups"][oldgroup] &&
+            socket == session["groups"][oldgroup]["mod"]) {
+          send_client_msg(socket, ["fMod", "You are still mod of group " + oldgroup]);
+        }
         break;
       /*
        * Private message
@@ -237,7 +264,30 @@ var server = net.createServer(function (socket) {
         }
         break;
       /*
-       * Currently there are no restrictions, as moderator is unsupported..
+       * /pass moderation, optionally to another user (who does not
+       * necessarily have to be in the group at the time, just online).
+       */
+      case 'pass':
+        var passto = args[1];
+        if (session["groups"][socket.group]["mod"] === socket) {
+          if (passto) {
+            var pass_sock = get_nick_socket(passto);
+            if (pass_sock) {
+              session["groups"][socket.group]["mod"] = pass_sock;
+              send_group_msg_all(socket.group, ["dPass", socket.nickname + " has passed moderation to " + passto]);
+            } else {
+              send_client_msg(socket, "e" + passto + " is not on!");
+            }
+          } else {
+            session["groups"][socket.group]["mod"] = {};
+            send_group_msg_all(socket.group, ["dPass", socket.nickname + " just relinquished the mod."]);
+          }
+        } else {
+          send_client_msg(socket, "eYou aren't the moderator.");
+        }
+        break;
+      /*
+       * Currently there are no restrictions on who can set the topic
        */
       case 'topic':
         if (!args[1]) {
@@ -248,17 +298,32 @@ var server = net.createServer(function (socket) {
         send_group_msg_all(socket.group, ["dTopic", socket.nickname + " changed the topic to \"" + topic + "\""]);
         break;
       /*
-       * Group flags and moderator are currently faked-up..
+       * Group flags "vl" are currently faked-up..
        */
       case 'w':
         var numgroups = 0;
         send_client_msg(socket, ["ico", ""]);
         for (var group in session["groups"]) {
           numgroups += 1;
-          send_client_msg(socket, ["ico", "Group: " + group + "  (mvl) Mod: jperkin       Topic: " + session["groups"][group]["topic"]]);
+          // Should really just pull in *printf...
+          var grouppad = "  "; 
+          for (var i = 7; i > group.length; i--) {
+            grouppad += " ";
+          }
+          var modflag = (session["groups"][group]["mod"].nickname) ? "m" : "p";
+          var mod = session["groups"][group]["mod"].nickname || "(None)";
+          var modpad = "  ";
+          for (var i = 12; i > mod.length; i--) {
+            modpad += " ";
+          }
+          send_client_msg(socket, ["ico",
+                                   "Group: " + group + grouppad +
+                                   "(" + modflag + "vl) Mod: " + mod + modpad +
+                                   "Topic: " + session["groups"][group]["topic"]]);
           session["sockets"].forEach(function (sock) {
             if (sock.group == group) {
-              send_client_msg(socket, ["iwl", " ", sock.nickname, parseInt(parseInt(new Date().getTime() / 1000) - sock.idlesince), "0", sock.logintime, sock.username, sock.hostname, "(nr)"]);
+              var groupmod = (session["groups"][group]["mod"].nickname === sock.nickname) ? "*" : " ";
+              send_client_msg(socket, ["iwl", groupmod, sock.nickname, parseInt(parseInt(new Date().getTime() / 1000) - sock.idlesince), "0", sock.logintime, sock.username, sock.hostname, "(nr)"]);
             }
           });
         }
@@ -283,6 +348,27 @@ var server = net.createServer(function (socket) {
       send_group_msg(socket.group, ["dSign-off", socket.nickname + " (" + socket.username + "@" + socket.hostname + ") has signed off."]);
     } else {
       delete session["groups"][socket.group];
+    }
+    /*
+     * Pass moderation of group to user with oldest login time
+     */
+    for (var group in session["groups"]) {
+      var passto = undefined;
+      if (socket == session["groups"][group]["mod"]) {
+        session["sockets"].forEach(function (sock) {
+          if (sock != socket && 
+              sock.group == group &&
+              (!passto || (passto && passto.logintime > sock.logintime))) {
+            logdebug("assign!");
+            passto = sock;
+          }
+        }, passto);
+        if (group != socket.group) {
+          send_group_msg(group, ["dSign-off", "Your group moderator signed off."]);
+        }
+        session["groups"][group]["mod"] = passto;
+        send_group_msg(group, ["dPass", passto.nickname + " is now mod."]);
+      }
     }
     // taken from https://gist.github.com/707146
     session["sockets"].splice(session["sockets"].indexOf(socket), 1);
