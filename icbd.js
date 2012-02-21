@@ -60,8 +60,10 @@ function logdebug(message) {
   }
 }
 
+var fs = require("fs");
 var net = require("net");
 var os = require("os");
+var path = require("path");
 
 /*
  * The main global ICB session.
@@ -144,7 +146,7 @@ var server = net.createServer(function (socket) {
 
       /* Send welcome */
       send_client_msg(socket, "a");
-      send_client_msg(socket, ["ico", "Welcome to icbd.js " + nickname + "!"]);
+      print_motd(socket);
 
       socket.nickname = nickname;
       socket.idlesince = parseInt(new Date().getTime() / 1000);
@@ -253,6 +255,12 @@ var server = net.createServer(function (socket) {
         } else {
           send_client_msg(socket, ["e" + nick + " not signed on."])
         }
+        break;
+      /*
+       * Message Of The Day
+       */
+      case 'motd':
+        print_motd(socket);
         break;
       /*
        * /nick aka name
@@ -473,6 +481,17 @@ var server = net.createServer(function (socket) {
       }
     }, count);
     return count;
+  }
+  /*
+   * Display MOTD, if available.  Currently synchronous.
+   */
+  function print_motd(socket) {
+    if (path.existsSync('motd.txt')) {
+      var motd = fs.readFileSync('motd.txt', 'ascii');
+      motd.split("\n").slice(0,-1).forEach(function(line) {
+       send_client_msg(socket, ["ico", line]);
+      });
+    }
   }
 });
 
