@@ -135,6 +135,13 @@ var server = net.createServer(function (socket) {
           return;
       }
 
+      if (nickname.length == 0 || nickname.length > 12) {
+          send_client_msg(socket, "eNickname must be between 1 and 12 characters.");
+          send_client_msg(socket, "g");
+          socket.end();
+          return;
+      }
+
       /* Send welcome */
       send_client_msg(socket, "a");
       send_client_msg(socket, ["ico", "Welcome to icbd.js " + nickname + "!"]);
@@ -255,6 +262,10 @@ var server = net.createServer(function (socket) {
           break;
         }
         var nick = args[1];
+        if (nick.length == 0 || nick.length > 12) {
+          send_client_msg(socket, "eNickname must be between 1 and 12 characters.");
+          break;
+        }
         if (!get_nick_socket(nick)) {
           var oldnick = socket.nickname;
           socket.nickname = nick;
