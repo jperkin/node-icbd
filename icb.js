@@ -11,7 +11,7 @@ var client = function() {
   socket.setEncoding("utf8");
 
   socket.on('connect', function(connect) {
-    sendicbmsg("ajperkin\001jperkin@icbjs\001test\001login");
+    sendicbmsg("ajperkin\001jperkin@js\001test\001login");
   });
 
   socket.on('data', function(data) {
