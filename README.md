@@ -31,17 +31,17 @@ icb server on something other than \*BSD
 
 ### Supported
 
-Group and private chats.
-Moderators (but they are currently powerless, it's nothing more than a badge).
-Most basic commands (/nick, /join, /brick etc).
+* Group and private chats.
+* Moderators (but they are currently powerless, it's nothing more than a badge).
+* Most basic commands (/nick, /join, /brick etc).
 
 ### Unsupported
 
-Nickname registration and server commands.
-Moderation commands.
-Administration commands.
-Miscellaneous user commands (beep, exclude, invite, etc).
-Probably lots more dusty corners of ICB I've never even heard of..
+* Nickname registration and server commands.
+* Moderation commands.
+* Administration commands.
+* Miscellaneous user commands (beep, exclude, invite, etc).
+* Probably lots more dusty corners of ICB I've never even heard of..
 
 ## Future work?
 
