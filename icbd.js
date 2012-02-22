@@ -24,7 +24,7 @@
  *  - Persistent user accounts, and associated commands
  *  - Admin + commands (drop, shutdown, wall)
  *  - Moderator commands (talk, topic, cancel, boot)
- *  - Misc commands (beep, invite, v, hush, {no,}beep, shuttime, notify,
+ *  - Misc commands (invite, v, hush, nobeep, shuttime, notify,
  *                   exclude, news, {no,}away, whereis, others?)
  *
  * TODO later:
@@ -187,6 +187,18 @@ var server = net.createServer(function (socket) {
      */
     if (cmd == "h") {
       switch (args[0]) {
+      case 'beep':
+        if (!args[1]) {
+          break;
+        }
+        var target = args[1];
+        var tsock = get_nick_socket(target);
+        if (!tsock) {
+          send_client_msg(socket, ["e" + target + " not signed on."]);
+          break;
+        }
+        send_client_msg(tsock, ["k" + socket.nickname]);
+        break;
       /*
        * The most important command! :)
        *
