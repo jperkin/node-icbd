@@ -267,6 +267,7 @@ var server = net.createServer(function (socket) {
        */
       case 'name':
         if (!args[1]) {
+          send_client_msg(socket, "eThe nickname may not be null.");
           break;
         }
         var nick = args[1];
