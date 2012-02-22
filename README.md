@@ -11,10 +11,10 @@ The ICB protocol is documented
 [here](http://www.icb.net/_jrudd/icb/protocol.html), however it only describes
 basic functionality.  There are many additional features and commands provided
 by at least
-[i2cb](ftp://ftp.netbsd.org/pub/pkgsrc/current/pkgsrc/chat/i2cb/README.html)
+[i2cbd](http://ftp.netbsd.org/pub/pkgsrc/current/pkgsrc/chat/i2cbd/README.html)
 which should be supported in any reasonable implementation.
 
-This server attempts to emulate i2cb, down to the same message strings etc.
+This server attempts to emulate i2cbd, down to the same message strings etc.
 
 ## Why?
 
@@ -23,7 +23,7 @@ is a good way to learn ICB from the server point-of-view, and has already
 exposed a number of bugs in my plugin.
 
 Also,
-[i2cb](ftp://ftp.netbsd.org/pub/pkgsrc/current/pkgsrc/chat/i2cb/README.html)
+[i2cbd](http://ftp.netbsd.org/pub/pkgsrc/current/pkgsrc/chat/i2cbd/README.html)
 isn't very portable, so this may be of benefit to anyone who wants to run an
 icb server on something other than \*BSD
 

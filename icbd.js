@@ -212,7 +212,7 @@ var server = net.createServer(function (socket) {
         }
         var group = args[1];
         /*
-         * i2cb seems to have a 7 character limit on group names, but will
+         * i2cbd seems to have a 7 character limit on group names, but will
          * happily truncate longer requests.  Let's not do that.
          *
          * Unfortunately, irssi-icb will join the requested channel regardless,
