@@ -154,6 +154,7 @@ var server = net.createServer(function (socket) {
       socket.logintime = parseInt(new Date().getTime() / 1000);
       socket.username = loginid;
       socket.hostname = socket.remoteAddress;
+      socket.bricks = 5;
 
       if (defgroup) {
         if (!session["groups"].hasOwnProperty(defgroup)) {
@@ -191,17 +192,30 @@ var server = net.createServer(function (socket) {
        *
        * I believe proper ICB allows cross-group bricks, but not sure, for now
        * I restrict to in-group bricking..
+       *
+       * TODO: support brick floods (get kicked out for over-bricking).
        */
       case 'brick':
         if (!args[1]) {
+          send_client_msg(socket, ["dMessage", "You have " +
+                                   ((socket.bricks) ? socket.bricks : "no") +
+                                   ((socket.bricks == 1) ? " brick" : " bricks") +
+                                   " remaining."]);
+          break;
+        }
+        if (socket.bricks == 0) {
+          send_client_msg(socket, ["eYou are out of bricks."]);
           break;
         }
         var target = args[1];
         if (nick_in_group(target, socket.group) && target != socket.nickname) {
+          var tsock = get_nick_socket(target);
+          tsock.bricks += 1;
           send_group_msg_all(socket.group, ["dFYI", target + " has been bricked."]);
         } else {
           send_group_msg_all(socket.group, ["dFYI", "A brick flies off into the ether."]);
         }
+        socket.bricks -= 1;
         break;
       /*
        * Change group (/join)
