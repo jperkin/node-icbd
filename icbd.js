@@ -15,16 +15,17 @@
  *
  *  - Basic groups, people can join and chat with each other
  *  - Group topics and moderators, though moderators have no power
- *  - Bricks! :)
+ *  - /brick :)
  *  - /nick, /join, mostly functional /who
  *  - Private messages
  *
  * TODO next:
  *
- *  - Moderator commands
- *  - Persistent user accounts
- *  - Support group moderators
- *  - Lots..
+ *  - Persistent user accounts, and associated commands
+ *  - Admin + commands (drop, shutdown, wall)
+ *  - Moderator commands (talk, topic, cancel, boot)
+ *  - Misc commands (beep, invite, v, hush, {no,}beep, shuttime, notify,
+ *                   exclude, news, {no,}away, whereis, others?)
  *
  * TODO later:
  * 
